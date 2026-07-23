@@ -460,7 +460,7 @@
       <button class="close" id="overview-close">✕</button>
       <h3>Daily overview — <span id="overview-date"></span></h3>
       <div class="overview-grid">
-        <div class="ov-card"><div class="v" id="ov-appeals-total" style="color:var(--amber)">0</div><div class="l">Appeals solved</div></div>
+        <div class="ov-card"><div class="v" id="ov-appeals-total" style="color:var(--cyan)">0</div><div class="l">Appeals solved</div></div>
         <div class="ov-card"><div class="v" id="ov-reports-total" style="color:var(--cyan)">0</div><div class="l">Reports moderated</div></div>
         <div class="ov-card"><div class="v" id="ov-avg-sec">—</div><div class="l">Avg seconds / report</div></div>
         <div class="ov-card"><div class="v" id="ov-batches">0</div><div class="l">Batches closed</div></div>
@@ -521,7 +521,7 @@
         <thead><tr><th>Day</th><th>Appeals</th><th>Reports</th><th>Avg sec</th><th>Batches</th></tr></thead>
         <tbody id="week-tbody"></tbody>
       </table>
-      <div class="hint" style="padding-top:4px;">Only days still stored in this browser show up here. Data isn't kept indefinitely if the browser cache is cleared.</div>
+      <div class="hint" style="padding-top:4px;">Only days still stored in this browser show up here. Data older than 30 days is cleared automatically.</div>
     </div>
   </div>
 
@@ -552,7 +552,7 @@
   "use strict";
 
   // ====== CUSTOMIZATION ======
-  const BACKGROUND_IMAGE_URL = 'https://raw.githubusercontent.com/mkaanztrk/kpi-tracker/refs/heads/main/Replica%20Hunters%20_%20Pastel%20Palette.png';   // loading-screen image URL, leave '' for none
+  const BACKGROUND_IMAGE_URL = '';   // loading-screen image URL, leave '' for none
   const TOPBAR_BACKGROUND_IMAGE_URL = 'https://raw.githubusercontent.com/mkaanztrk/kpi-tracker/refs/heads/main/Replica%20Hunters%20_%20Slim%20Banner.png';   // top-bar image URL, leave '' for none
   const MINI_WINDOW_WIDTH = 380;      // pop-out window size, px
   const MINI_WINDOW_HEIGHT = 320;
@@ -1362,11 +1362,27 @@
     if (miniWindow) renderMini();
   }
 
+  const DATA_RETENTION_DAYS = 30; // days of history to keep before auto-deleting
+  function cleanupOldDays(){
+    try {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - DATA_RETENTION_DAYS);
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (!key || !key.startsWith('kpi-day-')) continue;
+        const parts = key.slice('kpi-day-'.length).split('-').map(Number);
+        const keyDate = new Date(parts[0], parts[1] - 1, parts[2]);
+        if (keyDate < cutoff) localStorage.removeItem(key);
+      }
+    } catch(e){ console.error('Cleanup failed', e); }
+  }
+
   function init(){
     // top-bar image applies immediately (not part of the one-time splash)
     if (TOPBAR_BACKGROUND_IMAGE_URL) {
       document.documentElement.style.setProperty('--topbar-bg-image', 'url("' + TOPBAR_BACKGROUND_IMAGE_URL + '")');
     }
+    cleanupOldDays();
     loadSettings();
     loadState();
     refreshKeyLabels();
